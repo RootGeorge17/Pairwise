@@ -1,8 +1,18 @@
+# ---- Java / Spring Boot ----
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+
+# ---- Node / Vite / React ----
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
 
 ### STS ###
 .apt_generated
