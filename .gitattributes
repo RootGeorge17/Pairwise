@@ -1,0 +1,10 @@
+# Line endings
+/mvnw text eol=lf
+*.cmd text eol=crlf
+*.sh text eol=lf
+
+# Prevent Git from showing binary diffs
+*.jar binary
+*.class binary
+*.png binary
+*.jpg binary
