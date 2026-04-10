@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { ChallengeLanguage } from "../types/challenge";
-import { fetchChallengeBySlug } from "../lib/challengesApi";
+import type { SandboxRunTestsResponse } from "../types/sandbox";
+import { fetchChallengeBySlug, getErrorMessage, runChallengeTests } from "../lib/challengesApi";
+import RunResultsPanel from "./RunResultsPanel";
 
 import Editor from "@monaco-editor/react";
 
@@ -63,12 +65,17 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [isReady, setIsReady] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
+    const [isRunningTests, setIsRunningTests] = useState(false);
+    const [runError, setRunError] = useState<string | null>(null);
+    const [runResult, setRunResult] = useState<SandboxRunTestsResponse | null>(null);
 
     useEffect(() => {
         if (!challengeSlug) {
             setLanguages([]);
             setSelectedLanguageId(null);
             setLoadError(null);
+            setRunError(null);
+            setRunResult(null);
             setCode(localStorage.getItem(getStorageKey()) ?? FALLBACK_CODE);
             setIsLoading(false);
             setIsReady(true);
@@ -95,6 +102,8 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
                 setLanguages([]);
                 setSelectedLanguageId(null);
                 setCode(FALLBACK_CODE);
+                setRunError(null);
+                setRunResult(null);
                 setLoadError("Failed to load challenge editor context.");
             } finally {
                 if (!controller.signal.aborted) {
@@ -108,6 +117,11 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
 
         return () => controller.abort();
     }, [challengeSlug]);
+
+    useEffect(() => {
+        setRunError(null);
+        setRunResult(null);
+    }, [challengeSlug, selectedLanguageId]);
 
     useEffect(() => {
         if (!isReady) {
@@ -135,9 +149,41 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
         }
     }
 
+    async function handleRunTests(): Promise<void> {
+        if (isRunningTests) {
+            return;
+        }
+
+        setActiveTab("results");
+
+        if (!challengeSlug || !selectedLanguage) {
+            setRunResult(null);
+            setRunError("Select a challenge and language before running tests.");
+            return;
+        }
+
+        setIsRunningTests(true);
+        setRunError(null);
+
+        try {
+            const result = await runChallengeTests({
+                slug: challengeSlug,
+                language: selectedLanguage.language,
+                sourceCode: code,
+            });
+            setRunResult(result);
+        } catch (error) {
+            setRunResult(null);
+            setRunError(getErrorMessage(error, "Failed to run tests."));
+        } finally {
+            setIsRunningTests(false);
+        }
+    }
+
     const selectedLanguage = languages.find((language) => language.id === selectedLanguageId) ?? null;
     const monacoLanguage = getMonacoLanguage(selectedLanguage?.language);
     const isLoadingEditor = !isReady || isLoading;
+    const selectedLanguageLabel = selectedLanguage ? formatLanguageLabel(selectedLanguage.language) : null;
 
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-900/85 shadow-[0_10px_35px_rgba(2,6,23,0.45)]">
@@ -214,9 +260,11 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
 
                     <button
                         type="button"
+                        onClick={() => void handleRunTests()}
+                        disabled={isLoadingEditor || !selectedLanguage || isRunningTests}
                         className="rounded-lg border border-slate-500 bg-slate-700/90 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-slate-300 hover:bg-slate-600"
                     >
-                        Run Tests
+                        {isRunningTests ? "Running..." : "Run Tests"}
                     </button>
                     <button
                         type="button"
@@ -227,9 +275,14 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
                 </div>
             </div>
 
-            <div className="relative flex-1 bg-[#0b1220]">
+            <div className="relative min-h-0 flex-1 bg-[#0b1220]">
                 {activeTab === "results" ? (
-                    <div className="h-full w-full" />
+                    <RunResultsPanel
+                        isRunning={isRunningTests}
+                        result={runResult}
+                        errorMessage={runError}
+                        languageLabel={selectedLanguageLabel}
+                    />
                 ) : isLoadingEditor ? (
                     <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-400">
                         Loading editor...

@@ -8,4 +8,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TestCaseRepository extends JpaRepository<TestCase, Long> {
     List<TestCase> findByChallengeIdAndHiddenFalseOrderByIdAsc(Long challengeId);
+    List<TestCase> findByChallengeIdOrderByIdAsc(Long challengeId);
 }
