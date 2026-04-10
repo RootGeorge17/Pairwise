@@ -45,9 +45,8 @@ public class User {
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "ENUM('LOCAL','GOOGLE','GITHUB') NOT NULL DEFAULT 'LOCAL'")
-    @Builder.Default
-    private Provider provider = Provider.LOCAL;
+    @Column(nullable = false)
+    private Provider provider;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -70,9 +69,6 @@ public class User {
         }
         if (updatedAt == null) {
             updatedAt = now;
-        }
-        if (provider == null) {
-            provider = Provider.LOCAL;
         }
     }
 

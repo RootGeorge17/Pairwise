@@ -32,12 +32,12 @@ public class ChallengeExample {
     @JoinColumn(name = "challenge_id", nullable = false)
     private Challenge challenge;
 
-    @Column(name = "text", columnDefinition = "TEXT")
-    private String text;
+    @Column(name = "explenation_text") 
+    private String explenationText;
 
-    @Column(name = "input_text", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "input_text", nullable = false)
     private String inputText;
 
-    @Column(name = "output_text", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "output_text", nullable = false)
     private String outputText;
 }

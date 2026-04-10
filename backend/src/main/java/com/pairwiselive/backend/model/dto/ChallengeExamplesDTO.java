@@ -1,8 +1,8 @@
 package com.pairwiselive.backend.model.dto;
 
-public record TestCaseDTO(
+public record ChallengeExamplesDTO(
     Long id,
     String input,
     String output,
-    boolean isHidden
+    String explenationText
 ) {}

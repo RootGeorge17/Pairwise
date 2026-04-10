@@ -40,14 +40,11 @@ public class ChallengeLanguage {
     private Challenge challenge;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "ENUM('JAVASCRIPT','PYTHON') NOT NULL")
+    @Column(nullable = false)
     private Language language;
 
-    @Column(name = "starter_code", nullable = false, columnDefinition = "LONGTEXT")
+    @Column(name = "starter_code", nullable = false)
     private String starterCode;
-
-    @Column(name = "reference_solution", columnDefinition = "LONGTEXT")
-    private String referenceSolution;
 
     @Column(name = "expected_function_name", nullable = false, length = 100)
     private String expectedFunctionName;
@@ -59,14 +56,14 @@ public class ChallengeLanguage {
     private String dockerImage;
 
     @Builder.Default
-    @Column(name = "time_limit_ms", nullable = false, columnDefinition = "INT NOT NULL DEFAULT 2000")
+    @Column(name = "time_limit_ms", nullable = false)
     private int timeLimitMs = 2000;
 
     @Builder.Default
-    @Column(name = "memory_limit_mb", nullable = false, columnDefinition = "INT NOT NULL DEFAULT 128")
+    @Column(name = "memory_limit_mb", nullable = false)
     private int memoryLimitMb = 128;
 
     @Builder.Default
-    @Column(name = "is_default", nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT FALSE")
+    @Column(name = "is_default", nullable = false)
     private boolean defaultLanguage = false;
 }

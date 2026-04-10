@@ -11,5 +11,5 @@ public record ChallengeResponseDTO(
     String constraintsText,
     String followUpText,
     List<ChallengeLanguageDTO> languages,
-    List<TestCaseDTO> examples
+    List<ChallengeExamplesDTO> examples
 ) {}

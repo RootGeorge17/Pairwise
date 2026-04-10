@@ -28,14 +28,14 @@ public class TestCase {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "input_data", nullable = false, columnDefinition = "LONGTEXT")
+    @Column(name = "input_data", nullable = false)
     private String inputData;
 
-    @Column(name = "expected_output", nullable = false, columnDefinition = "LONGTEXT")
+    @Column(name = "expected_output", nullable = false)
     private String expectedOutput;
 
     @Builder.Default
-    @Column(name = "is_hidden", nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT TRUE")
+    @Column(name = "is_hidden", nullable = false)
     private boolean hidden = true;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

@@ -1,16 +1,16 @@
 package com.pairwiselive.backend.service;
 
 import com.pairwiselive.backend.model.dto.ChallengeLanguageDTO;
+import com.pairwiselive.backend.model.dto.ChallengeExamplesDTO;
 import com.pairwiselive.backend.model.dto.ChallengeResponseDTO;
 import com.pairwiselive.backend.model.dto.ChallengeSummaryDTO;
-import com.pairwiselive.backend.model.dto.TestCaseDTO;
 import com.pairwiselive.backend.model.entity.Challenge;
+import com.pairwiselive.backend.model.entity.ChallengeExample;
 import com.pairwiselive.backend.model.entity.ChallengeLanguage;
-import com.pairwiselive.backend.model.entity.TestCase;
 import com.pairwiselive.backend.model.enums.Visibility;
+import com.pairwiselive.backend.repository.ChallengeExampleRepository;
 import com.pairwiselive.backend.repository.ChallengeLanguageRepository;
 import com.pairwiselive.backend.repository.ChallengeRepository;
-import com.pairwiselive.backend.repository.TestCaseRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,7 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ChallengeService {
     private final ChallengeRepository challengeRepository;
     private final ChallengeLanguageRepository challengeLanguageRepository;
-    private final TestCaseRepository testCaseRepository;
+    private final ChallengeExampleRepository challengeExampleRepository;
 
     @Transactional(readOnly = true)
     public List<ChallengeSummaryDTO> getAllChallenges() {
@@ -56,10 +56,10 @@ public class ChallengeService {
                 .map(this::toChallengeLanguageDTO)
                 .toList();
 
-        List<TestCaseDTO> exampleDTOs = testCaseRepository
-                .findByChallengeIdAndHiddenFalseOrderByIdAsc(challenge.getId())
+        List<ChallengeExamplesDTO> exampleDTOs = challengeExampleRepository
+                .findByChallengeIdOrderByIdAsc(challenge.getId())
                 .stream()
-                .map(this::toTestCaseDTO)
+                .map(this::toChallengeExamplesDTO)
                 .toList();
 
         return new ChallengeResponseDTO(
@@ -88,10 +88,12 @@ public class ChallengeService {
         );
     }
 
-    private TestCaseDTO toTestCaseDTO(TestCase testCase) {
-        return new TestCaseDTO(
-                testCase.getInputData(),
-                testCase.getExpectedOutput()
+    private ChallengeExamplesDTO toChallengeExamplesDTO(ChallengeExample challengeExample) {
+        return new ChallengeExamplesDTO(
+                challengeExample.getId(),
+                challengeExample.getInputText(),
+                challengeExample.getOutputText(),
+                challengeExample.getExplenationText()
         );
     }
 }

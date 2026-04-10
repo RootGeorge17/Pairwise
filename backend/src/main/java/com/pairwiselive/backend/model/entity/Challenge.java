@@ -42,24 +42,24 @@ public class Challenge {
     @Column(nullable = false, length = 150)
     private String title;
 
-    @Column(nullable = false, unique = true, length = 160)
+    @Column(nullable = false, unique = true, length = 150)
     private String slug;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false)
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "ENUM('EASY','MEDIUM','HARD') NOT NULL")
+    @Column(nullable = false)
     private Difficulty difficulty;
 
-    @Column(name = "constraints_text", columnDefinition = "TEXT")
+    @Column(name = "constraints_text")
     private String constraintsText;
 
-    @Column(name = "follow_up_text", columnDefinition = "TEXT")
+    @Column(name = "follow_up_text")
     private String followUpText;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "ENUM('PUBLIC','PRIVATE','INTERNAL') NOT NULL DEFAULT 'PUBLIC'")
+    @Column(nullable = false)
     @Builder.Default
     private Visibility visibility = Visibility.PUBLIC;
 
@@ -85,9 +85,6 @@ public class Challenge {
         }
         if (updatedAt == null) {
             updatedAt = now;
-        }
-        if (visibility == null) {
-            visibility = Visibility.PUBLIC;
         }
     }
 
