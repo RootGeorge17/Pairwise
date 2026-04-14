@@ -1,5 +1,6 @@
-package com.pairwiselive.backend.sandbox;
+package com.pairwiselive.backend.sandbox.infrastructure;
 
+import com.pairwiselive.backend.sandbox.domain.SandboxExecutionRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -7,10 +8,14 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Set;
+import org.springframework.stereotype.Component;
 
+@Component
 public class SandboxFilePreparer {
 
-    public Path prepareWorkspace(SandboxExecutionRequest request) throws IOException {
+    public Path prepareWorkspace(
+        SandboxExecutionRequest request
+    ) throws IOException {
         Path workspace = Files.createTempDirectory("pairwise-run-");
 
         Path solutionFile = workspace.resolve(request.entryFilename());
@@ -24,7 +29,11 @@ public class SandboxFilePreparer {
         return workspace;
     }
 
-    private void setPermissions(Path workspace, Path solutionFile, Path runnerFile) {
+    private void setPermissions(
+        Path workspace, 
+        Path solutionFile, 
+        Path runnerFile
+    ) {
         try {
             Set<PosixFilePermission> dirPerms =
                 PosixFilePermissions.fromString("rwxr-xr-x");   // 755
@@ -39,7 +48,9 @@ public class SandboxFilePreparer {
         }
     }
 
-    private String buildRunnerScript(SandboxExecutionRequest request) {
+    private String buildRunnerScript(
+        SandboxExecutionRequest request
+    ) {
         return """
             const solution = require('./%s');
             const input = %s;

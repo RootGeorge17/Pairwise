@@ -4,5 +4,5 @@ public record ChallengeExamplesDTO(
     Long id,
     String input,
     String output,
-    String explenationText
+    String explanationText
 ) {}

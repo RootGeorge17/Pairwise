@@ -1,4 +1,4 @@
-package com.pairwiselive.backend.sandbox;
+package com.pairwiselive.backend.sandbox.api.dto;
 
 public record SandboxTestCaseResult(
     int testNumber,

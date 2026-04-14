@@ -9,7 +9,7 @@ export type ChallengeExample = {
     id: number;
     input: string;
     output: string;
-    explenationText: string | null;
+    explanationText: string | null;
 };
 
 export type ChallengeLanguage = {

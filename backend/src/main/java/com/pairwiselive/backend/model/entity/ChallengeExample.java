@@ -32,8 +32,8 @@ public class ChallengeExample {
     @JoinColumn(name = "challenge_id", nullable = false)
     private Challenge challenge;
 
-    @Column(name = "explenation_text") 
-    private String explenationText;
+    @Column(name = "explenation_text")
+    private String explanationText;
 
     @Column(name = "input_text", nullable = false)
     private String inputText;

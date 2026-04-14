@@ -142,13 +142,13 @@ function ChallengePanel({ slug }: ChallengePanelProps) {
                                             {example.output}
                                         </pre>
                                     </div>
-                                    {example.explenationText && (
+                                    {example.explanationText && (
                                         <div>
                                             <p className="mb-1 text-xs uppercase tracking-wide text-slate-400">
                                                 Explanation
                                             </p>
                                             <p className="text-sm leading-6 text-slate-300 whitespace-pre-wrap">
-                                                {example.explenationText}
+                                                {example.explanationText}
                                             </p>
                                         </div>
                                     )}

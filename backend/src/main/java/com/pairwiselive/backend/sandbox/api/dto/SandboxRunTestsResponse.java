@@ -1,4 +1,4 @@
-package com.pairwiselive.backend.sandbox;
+package com.pairwiselive.backend.sandbox.api.dto;
 
 import java.util.List;
 

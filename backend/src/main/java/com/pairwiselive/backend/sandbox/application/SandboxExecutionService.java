@@ -1,8 +1,8 @@
-package com.pairwiselive.backend.sandbox;
+package com.pairwiselive.backend.sandbox.application;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pairwiselive.backend.exception.BadRequestException;
+import com.pairwiselive.backend.exception.ResourceNotFoundException;
+import com.pairwiselive.backend.exception.UnprocessableEntityException;
 import com.pairwiselive.backend.model.entity.Challenge;
 import com.pairwiselive.backend.model.entity.ChallengeLanguage;
 import com.pairwiselive.backend.model.entity.TestCase;
@@ -11,14 +11,19 @@ import com.pairwiselive.backend.model.enums.Visibility;
 import com.pairwiselive.backend.repository.ChallengeLanguageRepository;
 import com.pairwiselive.backend.repository.ChallengeRepository;
 import com.pairwiselive.backend.repository.TestCaseRepository;
+import com.pairwiselive.backend.sandbox.api.dto.SandboxRunTestsRequest;
+import com.pairwiselive.backend.sandbox.api.dto.SandboxRunTestsResponse;
+import com.pairwiselive.backend.sandbox.api.dto.SandboxTestCaseResult;
+import com.pairwiselive.backend.sandbox.domain.SandboxExecutionRequest;
+import com.pairwiselive.backend.sandbox.domain.SandboxExecutionResult;
+import com.pairwiselive.backend.sandbox.domain.SandboxRunner;
+import com.pairwiselive.backend.util.text.TextUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -28,36 +33,25 @@ public class SandboxExecutionService {
     private final ChallengeLanguageRepository challengeLanguageRepository;
     private final TestCaseRepository testCaseRepository;
     private final SandboxRunner sandboxRunner;
-    private final ObjectMapper objectMapper;
+    private final SandboxOutputComparator outputComparator;
 
     @Transactional(readOnly = true)
-    public SandboxRunTestsResponse runTests(SandboxRunTestsRequest request) {
-        validateRequest(request);
-
+    public SandboxRunTestsResponse runTests(
+        SandboxRunTestsRequest request
+    ) {
         Challenge challenge = challengeRepository.findBySlugAndVisibility(request.slug(), Visibility.PUBLIC)
-            .orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.NOT_FOUND,
+            .orElseThrow(() -> new ResourceNotFoundException(
                 "Challenge not found with slug: " + request.slug()
             ));
 
         Language language = parseLanguage(request.language());
         ChallengeLanguage challengeLanguage = challengeLanguageRepository
             .findByChallengeIdAndLanguage(challenge.getId(), language)
-            .orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
+            .orElseThrow(() -> new BadRequestException(
                 "Language " + language.name() + " is not configured for challenge: " + challenge.getSlug()
             ));
 
-        List<TestCase> testCases = testCaseRepository.findByChallengeIdAndHiddenFalseOrderByIdAsc(challenge.getId());
-        if (testCases.isEmpty()) {
-            testCases = testCaseRepository.findByChallengeIdOrderByIdAsc(challenge.getId());
-        }
-        if (testCases.isEmpty()) {
-            throw new ResponseStatusException(
-                HttpStatus.UNPROCESSABLE_ENTITY,
-                "No runnable test cases configured for challenge: " + challenge.getSlug()
-            );
-        }
+        List<TestCase> testCases = resolveRunnableTestCases(challenge.getId(), challenge.getSlug());
 
         List<SandboxTestCaseResult> testResults = new ArrayList<>();
         int passedTests = 0;
@@ -111,10 +105,10 @@ public class SandboxExecutionService {
         );
 
         SandboxExecutionResult executionResult = sandboxRunner.execute(executionRequest);
-        String actualOutput = normalize(executionResult.stdout());
-        String expectedOutput = normalize(testCase.getExpectedOutput());
+        String actualOutput = TextUtils.normalizeToEmptyTrimmed(executionResult.stdout());
+        String expectedOutput = TextUtils.normalizeToEmptyTrimmed(testCase.getExpectedOutput());
 
-        boolean passed = executionResult.success() && outputsEqual(actualOutput, expectedOutput);
+        boolean passed = executionResult.success() && outputComparator.areEqual(actualOutput, expectedOutput);
         String status = passed
             ? "PASSED"
             : executionResult.success() ? "WRONG_ANSWER" : executionResult.status();
@@ -133,41 +127,33 @@ public class SandboxExecutionService {
         );
     }
 
-    private void validateRequest(SandboxRunTestsRequest request) {
-        if (request == null
-            || isBlank(request.slug())
-            || isBlank(request.language())
-            || isBlank(request.sourceCode())) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "slug, language, and sourceCode are required."
+    private List<TestCase> resolveRunnableTestCases(
+        Long challengeId, 
+        String challengeSlug
+    ) {
+        List<TestCase> testCases = testCaseRepository.findByChallengeIdAndHiddenFalseOrderByIdAsc(challengeId);
+        if (testCases.isEmpty()) {
+            testCases = testCaseRepository.findByChallengeIdOrderByIdAsc(challengeId);
+        }
+        if (testCases.isEmpty()) {
+            throw new UnprocessableEntityException(
+                "No runnable test cases configured for challenge: " + challengeSlug
             );
         }
+        return testCases;
     }
 
-    private Language parseLanguage(String language) {
+    private Language parseLanguage(
+        String language
+    ) {
+        if (TextUtils.isBlank(language)) {
+            throw new BadRequestException("language is required.");
+        }
+
         try {
             return Language.valueOf(language.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported language: " + language);
+            throw new BadRequestException("Unsupported language: " + language);
         }
-    }
-
-    private boolean outputsEqual(String actualOutput, String expectedOutput) {
-        try {
-            JsonNode actualNode = objectMapper.readTree(actualOutput);
-            JsonNode expectedNode = objectMapper.readTree(expectedOutput);
-            return actualNode.equals(expectedNode);
-        } catch (JsonProcessingException ignored) {
-            return actualOutput.equals(expectedOutput);
-        }
-    }
-
-    private String normalize(String value) {
-        return value == null ? "" : value.trim();
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
     }
 }

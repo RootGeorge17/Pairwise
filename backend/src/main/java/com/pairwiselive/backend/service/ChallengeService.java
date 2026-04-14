@@ -4,6 +4,7 @@ import com.pairwiselive.backend.model.dto.ChallengeLanguageDTO;
 import com.pairwiselive.backend.model.dto.ChallengeExamplesDTO;
 import com.pairwiselive.backend.model.dto.ChallengeResponseDTO;
 import com.pairwiselive.backend.model.dto.ChallengeSummaryDTO;
+import com.pairwiselive.backend.exception.ResourceNotFoundException;
 import com.pairwiselive.backend.model.entity.Challenge;
 import com.pairwiselive.backend.model.entity.ChallengeExample;
 import com.pairwiselive.backend.model.entity.ChallengeLanguage;
@@ -13,10 +14,8 @@ import com.pairwiselive.backend.repository.ChallengeLanguageRepository;
 import com.pairwiselive.backend.repository.ChallengeRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -41,8 +40,7 @@ public class ChallengeService {
     @Transactional(readOnly = true)
     public ChallengeResponseDTO getChallengeBySlug(String slug) {
         Challenge challenge = challengeRepository.findBySlugAndVisibility(slug, Visibility.PUBLIC)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Challenge not found with slug: " + slug
                 ));
 
@@ -93,7 +91,7 @@ public class ChallengeService {
                 challengeExample.getId(),
                 challengeExample.getInputText(),
                 challengeExample.getOutputText(),
-                challengeExample.getExplenationText()
+                challengeExample.getExplanationText()
         );
     }
 }

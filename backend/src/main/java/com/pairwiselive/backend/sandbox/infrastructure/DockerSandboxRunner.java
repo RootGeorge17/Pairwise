@@ -1,33 +1,40 @@
-package com.pairwiselive.backend.sandbox;
+package com.pairwiselive.backend.sandbox.infrastructure;
 
-import java.io.IOException;
-import java.io.InputStream;
+import com.pairwiselive.backend.sandbox.domain.SandboxExecutionRequest;
+import com.pairwiselive.backend.sandbox.domain.SandboxExecutionResult;
+import com.pairwiselive.backend.sandbox.domain.SandboxRunner;
+import com.pairwiselive.backend.util.io.DirectoryUtils;
+import com.pairwiselive.backend.util.io.InputStreamUtils;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class DockerSandboxRunner implements SandboxRunner {
 
-    private final SandboxFilePreparer filePreparer = new SandboxFilePreparer();
+    private static final Logger log = LoggerFactory.getLogger(DockerSandboxRunner.class);
+
+    private final SandboxFilePreparer filePreparer;
 
     @Override
-    public SandboxExecutionResult execute(SandboxExecutionRequest request) {
+    public SandboxExecutionResult execute(
+        SandboxExecutionRequest request
+    ) {
         Path workspace = null;
         Instant start = Instant.now();
 
         try {
             workspace = filePreparer.prepareWorkspace(request);
 
-            System.out.println("Workspace: " + workspace.toAbsolutePath());
-            try (var paths = java.nio.file.Files.list(workspace)) {
-                paths.forEach(path -> System.out.println(" - " + path.getFileName()));
-            }
-
             List<String> command = buildDockerCommand(workspace, request);
+            log.debug("Executing sandbox command: {}", command);
 
             ProcessBuilder processBuilder = new ProcessBuilder(command);
             Process process = processBuilder.start();
@@ -48,12 +55,10 @@ public class DockerSandboxRunner implements SandboxRunner {
                 );
             }
 
-            String stdout = readAll(process.getInputStream());
-            String stderr = readAll(process.getErrorStream());
+            String stdout = InputStreamUtils.readAll(process.getInputStream());
+            String stderr = InputStreamUtils.readAll(process.getErrorStream());
             int exitCode = process.exitValue();
-
             long duration = Duration.between(start, Instant.now()).toMillis();
-
             String status = exitCode == 0 ? "SUCCESS" : "RUNTIME_ERROR";
 
             return new SandboxExecutionResult(
@@ -67,6 +72,7 @@ public class DockerSandboxRunner implements SandboxRunner {
             );
 
         } catch (Exception e) {
+            log.error("Sandbox execution failed", e);
             long duration = Duration.between(start, Instant.now()).toMillis();
             return new SandboxExecutionResult(
                 false,
@@ -78,13 +84,14 @@ public class DockerSandboxRunner implements SandboxRunner {
                 duration
             );
         } finally {
-            if (workspace != null) {
-                deleteDirectoryQuietly(workspace);
-            }
+            DirectoryUtils.deleteDirectoryQuietly(workspace);
         }
     }
 
-    private List<String> buildDockerCommand(Path workspace, SandboxExecutionRequest request) {
+    private List<String> buildDockerCommand(
+        Path workspace, 
+        SandboxExecutionRequest request
+    ) {
         return List.of(
             "docker", "run", "--rm",
             "--network", "none",
@@ -100,22 +107,5 @@ public class DockerSandboxRunner implements SandboxRunner {
             request.dockerImage(),
             "node", "runner.js"
         );
-    }
-
-    private String readAll(InputStream inputStream) throws IOException {
-        return new String(inputStream.readAllBytes());
-    }
-
-    private void deleteDirectoryQuietly(Path path) {
-        try (var walk = java.nio.file.Files.walk(path)) {
-            walk.sorted(java.util.Comparator.reverseOrder())
-                .forEach(p -> {
-                    try {
-                        java.nio.file.Files.deleteIfExists(p);
-                    } catch (IOException ignored) {
-                    }
-                });
-        } catch (IOException ignored) {
-        }
     }
 }
