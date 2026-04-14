@@ -44,4 +44,5 @@ build/
 
 # Environment
 *.env
+backend/.env
 application.properties
