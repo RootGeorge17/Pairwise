@@ -26,18 +26,18 @@ public final class InputStreamUtils {
         int bytesRead;
 
         while ((bytesRead = inputStream.read(buffer)) != -1) {
-            if (totalRead + bytesRead <= maxBytes) {
-                outputStream.write(buffer, 0, bytesRead);
-                totalRead += bytesRead;
-                continue;
+            if (totalRead < maxBytes) {
+                int writable = Math.min(bytesRead, maxBytes - totalRead);
+                if (writable > 0) {
+                    outputStream.write(buffer, 0, writable);
+                    totalRead += writable;
+                }
+                if (writable < bytesRead) {
+                    truncated = true;
+                }
+            } else {
+                truncated = true;
             }
-
-            int remaining = maxBytes - totalRead;
-            if (remaining > 0) {
-                outputStream.write(buffer, 0, remaining);
-            }
-            truncated = true;
-            break;
         }
 
         return new StreamReadResult(outputStream.toString(StandardCharsets.UTF_8), truncated);

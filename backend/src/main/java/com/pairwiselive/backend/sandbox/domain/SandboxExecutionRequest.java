@@ -7,5 +7,5 @@ public record SandboxExecutionRequest(
     String dockerImage,
     int timeLimitMs,
     int memoryLimitMb,
-    String inputJson
+    String testCasesJson
 ) {}

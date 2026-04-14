@@ -37,6 +37,13 @@ function formatExecutionTime(value: number | null): string {
     return `${value} ms`;
 }
 
+function formatMemoryMb(value: number | null): string {
+    if (value == null) {
+        return "-";
+    }
+    return `${value} MB`;
+}
+
 function ResultCaseCard({ testResult }: { testResult: SandboxTestCaseResult }) {
     return (
         <article className="rounded-xl border border-slate-700/80 bg-slate-900/80 shadow-[0_8px_24px_rgba(2,6,23,0.3)]">
@@ -56,6 +63,7 @@ function ResultCaseCard({ testResult }: { testResult: SandboxTestCaseResult }) {
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400">
                     <span>Exit Code: {testResult.exitCode ?? "-"}</span>
                     <span>Runtime: {formatExecutionTime(testResult.executionTimeMs)}</span>
+                    <span>Memory: {formatMemoryMb(testResult.memoryUsedMb)}</span>
                 </div>
 
                 <div className="grid gap-3 lg:grid-cols-3">
@@ -137,7 +145,7 @@ function RunResultsPanel({ isRunning, result, errorMessage, languageLabel }: Run
                     </span>
                 </div>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
                     <div className="rounded-lg border border-slate-700/70 bg-slate-950/70 p-3">
                         <p className="text-[11px] uppercase tracking-wide text-slate-400">Passed</p>
                         <p className="mt-1 text-xl font-semibold text-emerald-300">{result.passedTests}</p>
@@ -157,6 +165,10 @@ function RunResultsPanel({ isRunning, result, errorMessage, languageLabel }: Run
                     <div className="rounded-lg border border-slate-700/70 bg-slate-950/70 p-3">
                         <p className="text-[11px] uppercase tracking-wide text-slate-400">Avg / Test</p>
                         <p className="mt-1 text-xl font-semibold text-slate-100">{result.averageExecutionTimeMs} ms</p>
+                    </div>
+                    <div className="rounded-lg border border-slate-700/70 bg-slate-950/70 p-3">
+                        <p className="text-[11px] uppercase tracking-wide text-slate-400">Peak Memory</p>
+                        <p className="mt-1 text-xl font-semibold text-slate-100">{formatMemoryMb(result.peakMemoryUsedMb)}</p>
                     </div>
                 </div>
 

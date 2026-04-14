@@ -73,8 +73,8 @@ public class ExecutionRun {
     @Column(name = "execution_time_ms")
     private Integer executionTimeMs;
 
-    @Column(name = "memory_used_kb")
-    private Integer memoryUsedKb;
+    @Column(name = "memory_used_mb")
+    private Integer memoryUsedMb;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

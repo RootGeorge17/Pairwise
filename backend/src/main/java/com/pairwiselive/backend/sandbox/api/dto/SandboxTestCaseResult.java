@@ -13,6 +13,7 @@ public record SandboxTestCaseResult(
     String stderr,
     Integer exitCode,
     Long executionTimeMs,
+    Integer memoryUsedMb,
     boolean stdoutTruncated,
     boolean stderrTruncated
 ) {}

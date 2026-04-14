@@ -15,6 +15,7 @@ export type SandboxTestCaseResult = {
     stderr: string;
     exitCode: number | null;
     executionTimeMs: number | null;
+    memoryUsedMb: number | null;
 };
 
 export type SandboxRunTestsResponse = {
@@ -26,6 +27,7 @@ export type SandboxRunTestsResponse = {
     failedTests: number;
     totalExecutionTimeMs: number;
     averageExecutionTimeMs: number;
+    peakMemoryUsedMb: number | null;
     timeLimitMs: number;
     memoryLimitMb: number;
     testResults: SandboxTestCaseResult[];

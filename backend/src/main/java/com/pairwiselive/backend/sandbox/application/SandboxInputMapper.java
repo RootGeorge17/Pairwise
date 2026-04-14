@@ -6,31 +6,53 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pairwiselive.backend.exception.UnprocessableEntityException;
+import com.pairwiselive.backend.model.entity.TestCase;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
+    @RequiredArgsConstructor
 public class SandboxInputMapper {
 
     private final ObjectMapper objectMapper;
 
-    public String toExecutionInputJson(String rawInputJson) {
-        try {
-            JsonNode inputNode = objectMapper.readTree(rawInputJson);
-            ArrayNode args = toArgsArray(inputNode);
+    public String toExecutionTestCasesJson(List<TestCase> testCases) {
+        ArrayNode testsNode = objectMapper.createArrayNode();
 
-            ObjectNode payload = objectMapper.createObjectNode();
-            payload.set("args", args);
-            return objectMapper.writeValueAsString(payload);
+        for (int index = 0; index < testCases.size(); index++) {
+            TestCase testCase = testCases.get(index);
+            testsNode.add(toTestNode(testCase, index + 1));
+        }
+
+        ObjectNode payloadNode = objectMapper.createObjectNode();
+        payloadNode.set("tests", testsNode);
+
+        try {
+            return objectMapper.writeValueAsString(payloadNode);
         } catch (JsonProcessingException exception) {
-            throw new UnprocessableEntityException("Invalid test case input JSON.");
+            throw new UnprocessableEntityException("Failed to serialize test case payload.");
         }
     }
 
-    private ArrayNode toArgsArray(JsonNode inputNode) {
+    private ObjectNode toTestNode(TestCase testCase, int testNumber) {
+        ObjectNode testNode = objectMapper.createObjectNode();
+        testNode.put("testNumber", testNumber);
+        testNode.put("input", testCase.getInputData());
+        testNode.put("expectedOutput", testCase.getExpectedOutput());
+        testNode.set("args", toArgsArray(testCase.getInputData(), testCase.getId()));
+        return testNode;
+    }
+
+    private ArrayNode toArgsArray(String rawInputJson, Long testCaseId) {
+        JsonNode inputNode;
+        try {
+            inputNode = objectMapper.readTree(rawInputJson);
+        } catch (JsonProcessingException exception) {
+            throw new UnprocessableEntityException("Invalid input JSON in test case id: " + testCaseId);
+        }
+
         ArrayNode args = objectMapper.createArrayNode();
 
         if (inputNode == null || inputNode.isNull()) {
@@ -47,9 +69,9 @@ public class SandboxInputMapper {
                 return (ArrayNode) explicitArgs;
             }
 
-            Iterator<Map.Entry<String, JsonNode>> fields = inputNode.fields();
-            while (fields.hasNext()) {
-                args.add(fields.next().getValue());
+            Iterator<JsonNode> values = inputNode.elements();
+            while (values.hasNext()) {
+                args.add(values.next());
             }
             return args;
         }

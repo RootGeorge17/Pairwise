@@ -12,6 +12,10 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -23,6 +27,7 @@ import org.springframework.stereotype.Component;
 public class DockerSandboxRunner implements SandboxRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DockerSandboxRunner.class);
+    private static final String SANDBOX_CONTAINER_USER = "10001:10001";
 
     private final SandboxFilePreparer filePreparer;
     private final SandboxProperties sandboxProperties;
@@ -42,57 +47,84 @@ public class DockerSandboxRunner implements SandboxRunner {
 
             ProcessBuilder processBuilder = new ProcessBuilder(command);
             Process process = processBuilder.start();
+            ExecutorService readerExecutor = Executors.newFixedThreadPool(2);
+            Future<StreamReadResult> stdoutFuture = null;
+            Future<StreamReadResult> stderrFuture = null;
 
-            boolean finished = process.waitFor(
-                request.timeLimitMs() + sandboxProperties.getExtraTimeoutBufferMs(),
-                TimeUnit.MILLISECONDS
-            );
+            try {
+                stdoutFuture = readerExecutor.submit(() -> InputStreamUtils.readCapped(
+                    process.getInputStream(),
+                    sandboxProperties.getMaxOutputBytes()
+                ));
+                stderrFuture = readerExecutor.submit(() -> InputStreamUtils.readCapped(
+                    process.getErrorStream(),
+                    sandboxProperties.getMaxOutputBytes()
+                ));
 
-            if (!finished) {
-                process.destroyForcibly();
-                long duration = Duration.between(start, Instant.now()).toMillis();
-                return new SandboxExecutionResult(
-                    false,
-                    true,
-                    SandboxExecutionStatus.TIMEOUT,
-                    "",
-                    "Execution exceeded time limit.",
-                    null,
-                    duration,
-                    false,
-                    false
+                boolean finished = process.waitFor(
+                    request.timeLimitMs() + sandboxProperties.getExtraTimeoutBufferMs(),
+                    TimeUnit.MILLISECONDS
                 );
+
+                if (!finished) {
+                    process.destroyForcibly();
+                    StreamReadResult stdoutRead = awaitStreamRead(stdoutFuture);
+                    StreamReadResult stderrRead = awaitStreamRead(stderrFuture);
+                    long duration = Duration.between(start, Instant.now()).toMillis();
+                    return new SandboxExecutionResult(
+                        false,
+                        true,
+                        SandboxExecutionStatus.TIMEOUT,
+                        stdoutRead.content(),
+                        appendTimeoutMessage(stderrRead.content()),
+                        null,
+                        duration,
+                        stdoutRead.truncated(),
+                        stderrRead.truncated()
+                    );
+                }
+
+                StreamReadResult stdoutRead = awaitStreamRead(stdoutFuture);
+                StreamReadResult stderrRead = awaitStreamRead(stderrFuture);
+                String stdout = stdoutRead.content();
+                String stderr = stderrRead.content();
+                int exitCode = process.exitValue();
+                long duration = Duration.between(start, Instant.now()).toMillis();
+                boolean outputTruncated = stdoutRead.truncated() || stderrRead.truncated();
+                SandboxExecutionStatus status = outputTruncated
+                    ? SandboxExecutionStatus.OUTPUT_LIMIT_EXCEEDED
+                    : exitCode == 0 ? SandboxExecutionStatus.SUCCESS : SandboxExecutionStatus.RUNTIME_ERROR;
+
+                return new SandboxExecutionResult(
+                    exitCode == 0 && !outputTruncated,
+                    false,
+                    status,
+                    stdout,
+                    stderr,
+                    exitCode,
+                    duration,
+                    stdoutRead.truncated(),
+                    stderrRead.truncated()
+                );
+            } finally {
+                readerExecutor.shutdownNow();
             }
 
-            StreamReadResult stdoutRead = InputStreamUtils.readCapped(
-                process.getInputStream(),
-                sandboxProperties.getMaxOutputBytes()
-            );
-            StreamReadResult stderrRead = InputStreamUtils.readCapped(
-                process.getErrorStream(),
-                sandboxProperties.getMaxOutputBytes()
-            );
-            String stdout = stdoutRead.content();
-            String stderr = stderrRead.content();
-            int exitCode = process.exitValue();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Sandbox execution interrupted", e);
             long duration = Duration.between(start, Instant.now()).toMillis();
-            boolean outputTruncated = stdoutRead.truncated() || stderrRead.truncated();
-            SandboxExecutionStatus status = outputTruncated
-                ? SandboxExecutionStatus.OUTPUT_LIMIT_EXCEEDED
-                : exitCode == 0 ? SandboxExecutionStatus.SUCCESS : SandboxExecutionStatus.RUNTIME_ERROR;
-
             return new SandboxExecutionResult(
-                exitCode == 0 && !outputTruncated,
                 false,
-                status,
-                stdout,
-                stderr,
-                exitCode,
+                false,
+                SandboxExecutionStatus.SANDBOX_ERROR,
+                "",
+                "Sandbox execution was interrupted.",
+                null,
                 duration,
-                stdoutRead.truncated(),
-                stderrRead.truncated()
+                false,
+                false
             );
-
         } catch (Exception e) {
             log.error("Sandbox execution failed", e);
             long duration = Duration.between(start, Instant.now()).toMillis();
@@ -112,6 +144,25 @@ public class DockerSandboxRunner implements SandboxRunner {
         }
     }
 
+    private StreamReadResult awaitStreamRead(
+        Future<StreamReadResult> streamReadFuture
+    ) throws InterruptedException, ExecutionException {
+        if (streamReadFuture == null) {
+            return new StreamReadResult("", false);
+        }
+        return streamReadFuture.get();
+    }
+
+    private String appendTimeoutMessage(
+        String stderr
+    ) {
+        String timeoutMessage = "Execution exceeded time limit.";
+        if (stderr == null || stderr.isBlank()) {
+            return timeoutMessage;
+        }
+        return stderr + System.lineSeparator() + timeoutMessage;
+    }
+
     private List<String> buildDockerCommand(
         Path workspace, 
         SandboxExecutionRequest request
@@ -119,6 +170,7 @@ public class DockerSandboxRunner implements SandboxRunner {
         return List.of(
             "docker", "run", "--rm",
             "--network", "none",
+            "--user", SANDBOX_CONTAINER_USER,
             "--cpus", sandboxProperties.getCpus(),
             "--memory", request.memoryLimitMb() + "m",
             "--pids-limit", String.valueOf(sandboxProperties.getPidsLimit()),

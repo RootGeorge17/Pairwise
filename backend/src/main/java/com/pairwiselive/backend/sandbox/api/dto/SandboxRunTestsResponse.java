@@ -12,6 +12,7 @@ public record SandboxRunTestsResponse(
     int failedTests,
     long totalExecutionTimeMs,
     long averageExecutionTimeMs,
+    Integer peakMemoryUsedMb,
     int timeLimitMs,
     int memoryLimitMb,
     List<SandboxTestCaseResult> testResults
