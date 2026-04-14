@@ -16,7 +16,10 @@ import com.pairwiselive.backend.sandbox.api.dto.SandboxRunTestsResponse;
 import com.pairwiselive.backend.sandbox.api.dto.SandboxTestCaseResult;
 import com.pairwiselive.backend.sandbox.domain.SandboxExecutionRequest;
 import com.pairwiselive.backend.sandbox.domain.SandboxExecutionResult;
+import com.pairwiselive.backend.sandbox.domain.SandboxExecutionStatus;
+import com.pairwiselive.backend.sandbox.domain.SandboxRunStatus;
 import com.pairwiselive.backend.sandbox.domain.SandboxRunner;
+import com.pairwiselive.backend.sandbox.domain.SandboxTestStatus;
 import com.pairwiselive.backend.util.text.TextUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +37,7 @@ public class SandboxExecutionService {
     private final TestCaseRepository testCaseRepository;
     private final SandboxRunner sandboxRunner;
     private final SandboxOutputComparator outputComparator;
+    private final SandboxInputMapper sandboxInputMapper;
 
     @Transactional(readOnly = true)
     public SandboxRunTestsResponse runTests(
@@ -71,7 +75,7 @@ public class SandboxExecutionService {
         int totalTests = testResults.size();
         int failedTests = totalTests - passedTests;
         long averageExecutionTimeMs = totalTests == 0 ? 0 : totalExecutionTimeMs / totalTests;
-        String status = failedTests == 0 ? "PASSED" : "FAILED";
+        SandboxRunStatus status = failedTests == 0 ? SandboxRunStatus.PASSED : SandboxRunStatus.FAILED;
 
         return new SandboxRunTestsResponse(
             challenge.getSlug(),
@@ -101,7 +105,7 @@ public class SandboxExecutionService {
             challengeLanguage.getDockerImage(),
             challengeLanguage.getTimeLimitMs(),
             challengeLanguage.getMemoryLimitMb(),
-            testCase.getInputData()
+            sandboxInputMapper.toExecutionInputJson(testCase.getInputData())
         );
 
         SandboxExecutionResult executionResult = sandboxRunner.execute(executionRequest);
@@ -109,9 +113,11 @@ public class SandboxExecutionService {
         String expectedOutput = TextUtils.normalizeToEmptyTrimmed(testCase.getExpectedOutput());
 
         boolean passed = executionResult.success() && outputComparator.areEqual(actualOutput, expectedOutput);
-        String status = passed
-            ? "PASSED"
-            : executionResult.success() ? "WRONG_ANSWER" : executionResult.status();
+        SandboxTestStatus status = passed
+            ? SandboxTestStatus.PASSED
+            : executionResult.status() == SandboxExecutionStatus.SUCCESS
+                ? SandboxTestStatus.WRONG_ANSWER
+                : mapExecutionStatusToTestStatus(executionResult.status());
 
         return new SandboxTestCaseResult(
             testNumber,
@@ -123,8 +129,20 @@ public class SandboxExecutionService {
             executionResult.stdout(),
             executionResult.stderr(),
             executionResult.exitCode(),
-            executionResult.executionTimeMs()
+            executionResult.executionTimeMs(),
+            executionResult.stdoutTruncated(),
+            executionResult.stderrTruncated()
         );
+    }
+
+    private SandboxTestStatus mapExecutionStatusToTestStatus(SandboxExecutionStatus status) {
+        return switch (status) {
+            case TIMEOUT -> SandboxTestStatus.TIMEOUT;
+            case RUNTIME_ERROR -> SandboxTestStatus.RUNTIME_ERROR;
+            case SANDBOX_ERROR -> SandboxTestStatus.SANDBOX_ERROR;
+            case OUTPUT_LIMIT_EXCEEDED -> SandboxTestStatus.OUTPUT_LIMIT_EXCEEDED;
+            case SUCCESS -> SandboxTestStatus.WRONG_ANSWER;
+        };
     }
 
     private List<TestCase> resolveRunnableTestCases(

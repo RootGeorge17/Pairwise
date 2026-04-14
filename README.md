@@ -8,12 +8,7 @@
 
 ### Backend Configuration
 
-Set these environment variables before starting the backend:
-
-- `PAIRWISE_DB_URL`
-- `PAIRWISE_DB_USERNAME`
-- `PAIRWISE_DB_PASSWORD`
-- `PAIRWISE_JPA_SHOW_SQL`
+Set the environment variables before starting the backend:
 
 Create your local env file:
 

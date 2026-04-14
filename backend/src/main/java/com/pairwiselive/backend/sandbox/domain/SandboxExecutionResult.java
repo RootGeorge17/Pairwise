@@ -3,9 +3,11 @@ package com.pairwiselive.backend.sandbox.domain;
 public record SandboxExecutionResult(
     boolean success,
     boolean timedOut,
-    String status,
+    SandboxExecutionStatus status,
     String stdout,
     String stderr,
     Integer exitCode,
-    Long executionTimeMs
+    Long executionTimeMs,
+    boolean stdoutTruncated,
+    boolean stderrTruncated
 ) {}

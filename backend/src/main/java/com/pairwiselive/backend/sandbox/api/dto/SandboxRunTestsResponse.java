@@ -1,11 +1,12 @@
 package com.pairwiselive.backend.sandbox.api.dto;
 
+import com.pairwiselive.backend.sandbox.domain.SandboxRunStatus;
 import java.util.List;
 
 public record SandboxRunTestsResponse(
     String challengeSlug,
     String language,
-    String status,
+    SandboxRunStatus status,
     int totalTests,
     int passedTests,
     int failedTests,

@@ -1,10 +1,13 @@
 package com.pairwiselive.backend.sandbox.infrastructure;
 
+import com.pairwiselive.backend.config.SandboxProperties;
 import com.pairwiselive.backend.sandbox.domain.SandboxExecutionRequest;
 import com.pairwiselive.backend.sandbox.domain.SandboxExecutionResult;
+import com.pairwiselive.backend.sandbox.domain.SandboxExecutionStatus;
 import com.pairwiselive.backend.sandbox.domain.SandboxRunner;
 import com.pairwiselive.backend.util.io.DirectoryUtils;
 import com.pairwiselive.backend.util.io.InputStreamUtils;
+import com.pairwiselive.backend.util.io.StreamReadResult;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -22,6 +25,7 @@ public class DockerSandboxRunner implements SandboxRunner {
     private static final Logger log = LoggerFactory.getLogger(DockerSandboxRunner.class);
 
     private final SandboxFilePreparer filePreparer;
+    private final SandboxProperties sandboxProperties;
 
     @Override
     public SandboxExecutionResult execute(
@@ -39,7 +43,10 @@ public class DockerSandboxRunner implements SandboxRunner {
             ProcessBuilder processBuilder = new ProcessBuilder(command);
             Process process = processBuilder.start();
 
-            boolean finished = process.waitFor(request.timeLimitMs() + 1000L, TimeUnit.MILLISECONDS);
+            boolean finished = process.waitFor(
+                request.timeLimitMs() + sandboxProperties.getExtraTimeoutBufferMs(),
+                TimeUnit.MILLISECONDS
+            );
 
             if (!finished) {
                 process.destroyForcibly();
@@ -47,28 +54,43 @@ public class DockerSandboxRunner implements SandboxRunner {
                 return new SandboxExecutionResult(
                     false,
                     true,
-                    "TIMEOUT",
+                    SandboxExecutionStatus.TIMEOUT,
                     "",
                     "Execution exceeded time limit.",
                     null,
-                    duration
+                    duration,
+                    false,
+                    false
                 );
             }
 
-            String stdout = InputStreamUtils.readAll(process.getInputStream());
-            String stderr = InputStreamUtils.readAll(process.getErrorStream());
+            StreamReadResult stdoutRead = InputStreamUtils.readCapped(
+                process.getInputStream(),
+                sandboxProperties.getMaxOutputBytes()
+            );
+            StreamReadResult stderrRead = InputStreamUtils.readCapped(
+                process.getErrorStream(),
+                sandboxProperties.getMaxOutputBytes()
+            );
+            String stdout = stdoutRead.content();
+            String stderr = stderrRead.content();
             int exitCode = process.exitValue();
             long duration = Duration.between(start, Instant.now()).toMillis();
-            String status = exitCode == 0 ? "SUCCESS" : "RUNTIME_ERROR";
+            boolean outputTruncated = stdoutRead.truncated() || stderrRead.truncated();
+            SandboxExecutionStatus status = outputTruncated
+                ? SandboxExecutionStatus.OUTPUT_LIMIT_EXCEEDED
+                : exitCode == 0 ? SandboxExecutionStatus.SUCCESS : SandboxExecutionStatus.RUNTIME_ERROR;
 
             return new SandboxExecutionResult(
-                exitCode == 0,
+                exitCode == 0 && !outputTruncated,
                 false,
                 status,
                 stdout,
                 stderr,
                 exitCode,
-                duration
+                duration,
+                stdoutRead.truncated(),
+                stderrRead.truncated()
             );
 
         } catch (Exception e) {
@@ -77,11 +99,13 @@ public class DockerSandboxRunner implements SandboxRunner {
             return new SandboxExecutionResult(
                 false,
                 false,
-                "SANDBOX_ERROR",
+                SandboxExecutionStatus.SANDBOX_ERROR,
                 "",
                 e.getMessage(),
                 null,
-                duration
+                duration,
+                false,
+                false
             );
         } finally {
             DirectoryUtils.deleteDirectoryQuietly(workspace);
@@ -95,17 +119,21 @@ public class DockerSandboxRunner implements SandboxRunner {
         return List.of(
             "docker", "run", "--rm",
             "--network", "none",
-            "--cpus", "0.5",
+            "--cpus", sandboxProperties.getCpus(),
             "--memory", request.memoryLimitMb() + "m",
-            "--pids-limit", "64",
+            "--pids-limit", String.valueOf(sandboxProperties.getPidsLimit()),
             "--read-only",
-            "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",
+            "--tmpfs", sandboxProperties.getTmpfs(),
             "--security-opt", "no-new-privileges",
             "--cap-drop", "ALL",
-            "-v", workspace.toAbsolutePath() + ":/sandbox:ro,Z",
+            "-v", workspace.toAbsolutePath() + buildVolumeSuffix(),
             "-w", "/sandbox",
             request.dockerImage(),
             "node", "runner.js"
         );
+    }
+
+    private String buildVolumeSuffix() {
+        return sandboxProperties.isEnableSelinuxLabel() ? ":/sandbox:ro,Z" : ":/sandbox:ro";
     }
 }

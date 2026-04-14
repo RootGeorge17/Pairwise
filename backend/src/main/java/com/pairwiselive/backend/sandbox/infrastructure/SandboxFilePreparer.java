@@ -53,7 +53,7 @@ public class SandboxFilePreparer {
     ) {
         return """
             const solution = require('./%s');
-            const input = %s;
+            const payload = %s;
 
             async function main() {
               try {
@@ -63,7 +63,13 @@ public class SandboxFilePreparer {
                   process.exit(2);
                 }
 
-                const result = await fn(...Object.values(input));
+                const args = Array.isArray(payload?.args) ? payload.args : null;
+                if (!args) {
+                  console.error('Invalid input payload. Expected {"args": [...]}');
+                  process.exit(3);
+                }
+
+                const result = await fn(...args);
                 process.stdout.write(JSON.stringify(result));
               } catch (error) {
                 console.error(error?.stack || String(error));
