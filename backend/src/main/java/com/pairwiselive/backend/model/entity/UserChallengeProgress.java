@@ -46,15 +46,15 @@ public class UserChallengeProgress {
     private Submission bestSubmission;
 
     @Builder.Default
-    @Column(nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT FALSE")
+    @Column(nullable = false)
     private boolean solved = false;
 
     @Builder.Default
-    @Column(name = "best_score", nullable = false, columnDefinition = "INT NOT NULL DEFAULT 0")
+    @Column(name = "best_score", nullable = false)
     private int bestScore = 0;
 
     @Builder.Default
-    @Column(name = "attempt_count", nullable = false, columnDefinition = "INT NOT NULL DEFAULT 0")
+    @Column(name = "attempt_count", nullable = false)
     private int attemptCount = 0;
 
     @Column(name = "first_solved_at")

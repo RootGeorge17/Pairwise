@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import type { ChallengeLanguage } from "../types/challenge";
-import type { SandboxRunTestsResponse } from "../types/sandbox";
-import { fetchChallengeBySlug, getErrorMessage, runChallengeTests } from "../lib/challengesApi";
-import RunResultsPanel from "./RunResultsPanel";
+import type { SandboxRunTestsResponse, SubmitCodeResponse } from "../types/sandbox";
+import { fetchChallengeBySlug, getErrorMessage, runChallengeTests, submitChallengeCode } from "../lib/challengesApi";
+import RunResultsPanel, { type ExecutionMode } from "./RunResultsPanel";
 
 import Editor from "@monaco-editor/react";
 
@@ -66,16 +66,19 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
     const [isReady, setIsReady] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [isRunningTests, setIsRunningTests] = useState(false);
-    const [runError, setRunError] = useState<string | null>(null);
-    const [runResult, setRunResult] = useState<SandboxRunTestsResponse | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [executionMode, setExecutionMode] = useState<ExecutionMode>(null);
+    const [executionError, setExecutionError] = useState<string | null>(null);
+    const [executionResult, setExecutionResult] = useState<SandboxRunTestsResponse | SubmitCodeResponse | null>(null);
 
     useEffect(() => {
         if (!challengeSlug) {
             setLanguages([]);
             setSelectedLanguageId(null);
             setLoadError(null);
-            setRunError(null);
-            setRunResult(null);
+            setExecutionError(null);
+            setExecutionResult(null);
+            setExecutionMode(null);
             setCode(localStorage.getItem(getStorageKey()) ?? FALLBACK_CODE);
             setIsLoading(false);
             setIsReady(true);
@@ -102,8 +105,9 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
                 setLanguages([]);
                 setSelectedLanguageId(null);
                 setCode(FALLBACK_CODE);
-                setRunError(null);
-                setRunResult(null);
+                setExecutionError(null);
+                setExecutionResult(null);
+                setExecutionMode(null);
                 setLoadError("Failed to load challenge editor context.");
             } finally {
                 if (!controller.signal.aborted) {
@@ -119,8 +123,9 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
     }, [challengeSlug]);
 
     useEffect(() => {
-        setRunError(null);
-        setRunResult(null);
+        setExecutionError(null);
+        setExecutionResult(null);
+        setExecutionMode(null);
     }, [challengeSlug, selectedLanguageId]);
 
     useEffect(() => {
@@ -150,20 +155,21 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
     }
 
     async function handleRunTests(): Promise<void> {
-        if (isRunningTests) {
+        if (isRunningTests || isSubmitting) {
             return;
         }
 
+        setExecutionMode("run");
         setActiveTab("results");
 
         if (!challengeSlug || !selectedLanguage) {
-            setRunResult(null);
-            setRunError("Select a challenge and language before running tests.");
+            setExecutionResult(null);
+            setExecutionError("Select a challenge and language before running tests.");
             return;
         }
 
         setIsRunningTests(true);
-        setRunError(null);
+        setExecutionError(null);
 
         try {
             const result = await runChallengeTests({
@@ -171,12 +177,44 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
                 language: selectedLanguage.language,
                 sourceCode: code,
             });
-            setRunResult(result);
+            setExecutionResult(result);
         } catch (error) {
-            setRunResult(null);
-            setRunError(getErrorMessage(error, "Failed to run tests."));
+            setExecutionResult(null);
+            setExecutionError(getErrorMessage(error, "Failed to run tests."));
         } finally {
             setIsRunningTests(false);
+        }
+    }
+
+    async function handleSubmitCode(): Promise<void> {
+        if (isRunningTests || isSubmitting) {
+            return;
+        }
+
+        setExecutionMode("submit");
+        setActiveTab("results");
+
+        if (!challengeSlug || !selectedLanguage) {
+            setExecutionResult(null);
+            setExecutionError("Select a challenge and language before submitting.");
+            return;
+        }
+
+        setIsSubmitting(true);
+        setExecutionError(null);
+
+        try {
+            const result = await submitChallengeCode({
+                slug: challengeSlug,
+                language: selectedLanguage.language,
+                sourceCode: code,
+            });
+            setExecutionResult(result);
+        } catch (error) {
+            setExecutionResult(null);
+            setExecutionError(getErrorMessage(error, "Failed to submit solution."));
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
@@ -261,16 +299,18 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
                     <button
                         type="button"
                         onClick={() => void handleRunTests()}
-                        disabled={isLoadingEditor || !selectedLanguage || isRunningTests}
+                        disabled={isLoadingEditor || !selectedLanguage || isRunningTests || isSubmitting}
                         className="rounded-lg border border-slate-500 bg-slate-700/90 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-slate-300 hover:bg-slate-600"
                     >
                         {isRunningTests ? "Running..." : "Run Tests"}
                     </button>
                     <button
                         type="button"
+                        onClick={() => void handleSubmitCode()}
+                        disabled={isLoadingEditor || !selectedLanguage || isRunningTests || isSubmitting}
                         className="rounded-lg border border-emerald-300/60 bg-emerald-400/25 px-4 py-2 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-400/35"
                     >
-                        Submit
+                        {isSubmitting ? "Submitting..." : "Submit"}
                     </button>
                 </div>
             </div>
@@ -278,10 +318,11 @@ function MonacoEditor({ challengeSlug }: MonacoEditorProps) {
             <div className="relative min-h-0 flex-1 bg-[#0b1220]">
                 {activeTab === "results" ? (
                     <RunResultsPanel
-                        isRunning={isRunningTests}
-                        result={runResult}
-                        errorMessage={runError}
+                        isLoading={isRunningTests || isSubmitting}
+                        result={executionResult}
+                        errorMessage={executionError}
                         languageLabel={selectedLanguageLabel}
+                        mode={executionMode}
                     />
                 ) : isLoadingEditor ? (
                     <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-400">

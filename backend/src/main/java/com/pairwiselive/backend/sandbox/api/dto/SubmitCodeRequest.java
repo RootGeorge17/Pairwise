@@ -2,7 +2,7 @@ package com.pairwiselive.backend.sandbox.api.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record SandboxRunTestsRequest(
+public record SubmitCodeRequest(
     @NotBlank(message = "slug is required.")
     String slug,
     @NotBlank(message = "language is required.")

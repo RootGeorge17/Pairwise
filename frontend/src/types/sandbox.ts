@@ -32,3 +32,40 @@ export type SandboxRunTestsResponse = {
     memoryLimitMb: number;
     testResults: SandboxTestCaseResult[];
 };
+
+export type SubmitCodeRequest = {
+    slug: string;
+    language: string;
+    sourceCode: string;
+};
+
+export type SubmitTestCaseResult = {
+    testNumber: number;
+    hidden: boolean;
+    passed: boolean;
+    status: string;
+    input: string;
+    expectedOutput: string;
+    actualOutput: string;
+    stdout: string;
+    stderr: string;
+    exitCode: number | null;
+    executionTimeMs: number | null;
+    memoryUsedMb: number | null;
+};
+
+export type SubmitCodeResponse = {
+    submissionId: number;
+    challengeSlug: string;
+    language: string;
+    status: string;
+    totalTests: number;
+    passedTests: number;
+    failedTests: number;
+    score: number;
+    totalExecutionTimeMs: number;
+    peakMemoryUsedMb: number | null;
+    solved: boolean;
+    bestScore: number;
+    testResults: SubmitTestCaseResult[];
+};

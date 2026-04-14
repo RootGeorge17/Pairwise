@@ -46,7 +46,7 @@ public class LobbyParticipant {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "pair_role", nullable = false, columnDefinition = "ENUM('DRIVER','NAVIGATOR','OBSERVER') NOT NULL")
+    @Column(name = "pair_role", nullable = false)
     private PairRole pairRole;
 
     @Column(name = "joined_at", nullable = false, updatable = false)
@@ -56,7 +56,7 @@ public class LobbyParticipant {
     private Instant leftAt;
 
     @Builder.Default
-    @Column(name = "is_active", nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT TRUE")
+    @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
     @PrePersist

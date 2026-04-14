@@ -41,10 +41,10 @@ public class SubmissionTestResult {
     @Column(nullable = false)
     private boolean passed;
 
-    @Column(name = "actual_output", columnDefinition = "LONGTEXT")
+    @Column(name = "actual_output")
     private String actualOutput;
 
-    @Column(name = "error_text", columnDefinition = "LONGTEXT")
+    @Column(name = "error_text")
     private String errorText;
 
     @Column(name = "execution_time_ms")

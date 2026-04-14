@@ -34,14 +34,14 @@ public class LobbyDocument {
     @JoinColumn(name = "lobby_id", nullable = false, unique = true)
     private Lobby lobby;
 
-    @Column(name = "yjs_state_blob", nullable = false, columnDefinition = "LONGBLOB")
+    @Column(name = "yjs_state_blob", nullable = false)
     private byte[] yjsStateBlob;
 
-    @Column(name = "plain_text_snapshot", columnDefinition = "LONGTEXT")
+    @Column(name = "plain_text_snapshot")
     private String plainTextSnapshot;
 
     @Builder.Default
-    @Column(nullable = false, columnDefinition = "INT NOT NULL DEFAULT 0")
+    @Column(nullable = false)
     private int version = 0;
 
     @Column(name = "last_persisted_at", nullable = false)

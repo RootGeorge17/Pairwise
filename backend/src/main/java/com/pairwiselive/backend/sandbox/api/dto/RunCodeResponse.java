@@ -3,7 +3,7 @@ package com.pairwiselive.backend.sandbox.api.dto;
 import com.pairwiselive.backend.sandbox.domain.SandboxRunStatus;
 import java.util.List;
 
-public record SandboxRunTestsResponse(
+public record RunCodeResponse(
     String challengeSlug,
     String language,
     SandboxRunStatus status,
@@ -15,5 +15,5 @@ public record SandboxRunTestsResponse(
     Integer peakMemoryUsedMb,
     int timeLimitMs,
     int memoryLimitMb,
-    List<SandboxTestCaseResult> testResults
+    List<RunTestCaseResult> testResults
 ) {}

@@ -50,15 +50,15 @@ public class ExecutionRun {
     @JoinColumn(name = "challenge_language_id", nullable = false)
     private ChallengeLanguage challengeLanguage;
 
-    @Column(name = "source_code", nullable = false, columnDefinition = "LONGTEXT")
+    @Column(name = "source_code", nullable = false)
     private String sourceCode;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "run_type", nullable = false, columnDefinition = "ENUM('RUN','SUBMIT') NOT NULL")
+    @Column(name = "run_type", nullable = false)
     private RunType runType;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "ENUM('SUCCESS','COMPILE_ERROR','RUNTIME_ERROR','TIMEOUT','SANDBOX_ERROR') NOT NULL")
+    @Column(nullable = false)
     private ExecutionRunStatus status;
 
     @Column(columnDefinition = "LONGTEXT")

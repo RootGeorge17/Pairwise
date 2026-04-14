@@ -51,33 +51,33 @@ public class Submission {
     private Lobby lobby;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "ENUM('SOLO','COLLABORATIVE') NOT NULL")
+    @Column(nullable = false)
     private SubmissionType submissionType;
 
-    @Column(name = "source_code", nullable = false, columnDefinition = "LONGTEXT")
+    @Column(name = "source_code", nullable = false)
     private String sourceCode;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "ENUM('PASSED','FAILED','RUNTIME_ERROR','TIMEOUT','ERROR') NOT NULL")
+    @Column(nullable = false)
     private SubmissionStatus status;
 
     @Builder.Default
-    @Column(name = "passed_count", nullable = false, columnDefinition = "INT NOT NULL DEFAULT 0")
+    @Column(name = "passed_count", nullable = false)
     private int passedCount = 0;
 
     @Builder.Default
-    @Column(name = "total_count", nullable = false, columnDefinition = "INT NOT NULL DEFAULT 0")
+    @Column(name = "total_count", nullable = false)
     private int totalCount = 0;
 
     @Builder.Default
-    @Column(nullable = false, columnDefinition = "INT NOT NULL DEFAULT 0")
+    @Column(nullable = false)
     private int score = 0;
 
     @Column(name = "execution_time_ms")
     private Integer executionTimeMs;
 
-    @Column(name = "memory_used_kb")
-    private Integer memoryUsedKb;
+    @Column(name = "memory_used_mb")
+    private Integer memoryUsedMb;
 
     @Column(name = "submitted_at", nullable = false, updatable = false)
     private Instant submittedAt;

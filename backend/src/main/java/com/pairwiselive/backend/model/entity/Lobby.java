@@ -52,12 +52,12 @@ public class Lobby {
     private String name;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "ENUM('WAITING','ACTIVE','CLOSED') NOT NULL DEFAULT 'WAITING'")
+    @Column(nullable = false)
     @Builder.Default
     private LobbyStatus status = LobbyStatus.WAITING;
 
     @Builder.Default
-    @Column(name = "max_participants", nullable = false, columnDefinition = "SMALLINT NOT NULL DEFAULT 2")
+    @Column(name = "max_participants", nullable = false)
     private short maxParticipants = 2;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -65,7 +65,7 @@ public class Lobby {
     private User currentDriverUser;
 
     @Builder.Default
-    @Column(name = "role_rotation_enabled", nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT TRUE")
+    @Column(name = "role_rotation_enabled", nullable = false)
     private boolean roleRotationEnabled = true;
 
     @Column(name = "rotation_interval_secs")

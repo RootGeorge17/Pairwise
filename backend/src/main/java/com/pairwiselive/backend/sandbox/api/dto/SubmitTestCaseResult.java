@@ -2,8 +2,9 @@ package com.pairwiselive.backend.sandbox.api.dto;
 
 import com.pairwiselive.backend.sandbox.domain.SandboxTestStatus;
 
-public record SandboxTestCaseResult(
+public record SubmitTestCaseResult(
     int testNumber,
+    boolean hidden,
     boolean passed,
     SandboxTestStatus status,
     String input,
@@ -13,7 +14,5 @@ public record SandboxTestCaseResult(
     String stderr,
     Integer exitCode,
     Long executionTimeMs,
-    Integer memoryUsedMb,
-    boolean stdoutTruncated,
-    boolean stderrTruncated
+    Integer memoryUsedMb
 ) {}
