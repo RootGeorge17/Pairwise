@@ -41,13 +41,18 @@ function ChallengesPage({ onOpenChallenge }: ChallengesPageProps) {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gray-900 p-6 text-white">
+        <div className="h-full bg-gray-900 p-6 text-white">
             <div className="mx-auto max-w-3xl space-y-6">
                 <header className="border-b border-gray-700 pb-3">
-                    <h1 className="text-3xl font-bold">Challenges</h1>
-                    <p className="mt-1 text-sm text-gray-400">
-                        Browse all challenges and open one to see full details.
-                    </p>
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold">Challenges</h1>
+                            <p className="mt-1 text-sm text-gray-400">
+                                Browse all challenges and open one to see full details.
+                            </p>
+                        </div>
+
+                    </div>
                 </header>
 
                 {isLoading && <p className="text-gray-300">Loading challenges...</p>}

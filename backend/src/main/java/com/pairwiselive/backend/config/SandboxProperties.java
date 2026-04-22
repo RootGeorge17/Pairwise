@@ -1,13 +1,17 @@
 package com.pairwiselive.backend.config;
 
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.validation.annotation.Validated;
+import lombok.Getter;
+import lombok.Setter;
 
 @Validated
 @ConfigurationProperties(prefix = "pairwise.sandbox")
+@Getter
+@Setter
 public class SandboxProperties {
 
     @NotBlank(message = "pairwise.sandbox.cpus is required.")
@@ -27,52 +31,4 @@ public class SandboxProperties {
     private int maxOutputBytes = 65536;
 
     private boolean enableSelinuxLabel = true;
-
-    public String getCpus() {
-        return cpus;
-    }
-
-    public void setCpus(String cpus) {
-        this.cpus = cpus;
-    }
-
-    public int getPidsLimit() {
-        return pidsLimit;
-    }
-
-    public void setPidsLimit(int pidsLimit) {
-        this.pidsLimit = pidsLimit;
-    }
-
-    public String getTmpfs() {
-        return tmpfs;
-    }
-
-    public void setTmpfs(String tmpfs) {
-        this.tmpfs = tmpfs;
-    }
-
-    public int getExtraTimeoutBufferMs() {
-        return extraTimeoutBufferMs;
-    }
-
-    public void setExtraTimeoutBufferMs(int extraTimeoutBufferMs) {
-        this.extraTimeoutBufferMs = extraTimeoutBufferMs;
-    }
-
-    public int getMaxOutputBytes() {
-        return maxOutputBytes;
-    }
-
-    public void setMaxOutputBytes(int maxOutputBytes) {
-        this.maxOutputBytes = maxOutputBytes;
-    }
-
-    public boolean isEnableSelinuxLabel() {
-        return enableSelinuxLabel;
-    }
-
-    public void setEnableSelinuxLabel(boolean enableSelinuxLabel) {
-        this.enableSelinuxLabel = enableSelinuxLabel;
-    }
 }

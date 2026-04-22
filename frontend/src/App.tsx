@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactElement } from "react";
 import MonacoEditor from "./components/MonacoEditor.tsx";
 import ChallengePanel from "./components/ChallengePanel.tsx";
 import ChallengesPage from "./components/ChallengesPage.tsx";
+import LoginPage from "./components/LoginPage.tsx";
+import RegisterPage from "./components/RegisterPage.tsx";
+import AppNavbar from "./components/AppNavbar.tsx";
+import {
+    bootstrapAuthSession,
+    clearAuthSession,
+    getStoredAuthSession,
+    logoutFromServer,
+} from "./lib/authApi";
 
 function normalizePathname(pathname: string): string {
     if (pathname === "/") {
@@ -35,6 +45,7 @@ function App() {
         window.matchMedia("(max-width: 1023px)").matches
     );
     const splitContainerRef = useRef<HTMLDivElement | null>(null);
+    const [authSession, setAuthSession] = useState(() => getStoredAuthSession());
 
     useEffect(() => {
         const handlePopState = () => {
@@ -43,6 +54,34 @@ function App() {
 
         window.addEventListener("popstate", handlePopState);
         return () => window.removeEventListener("popstate", handlePopState);
+    }, []);
+
+    useEffect(() => {
+        const onStorageChange = (event: StorageEvent) => {
+            if (!event.key || event.key.startsWith("pairwise.")) {
+                setAuthSession(getStoredAuthSession());
+            }
+        };
+
+        window.addEventListener("storage", onStorageChange);
+        return () => window.removeEventListener("storage", onStorageChange);
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const bootstrapAuth = async () => {
+            const session = await bootstrapAuthSession();
+            if (!cancelled) {
+                setAuthSession(session);
+            }
+        };
+
+        void bootstrapAuth();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     useEffect(() => {
@@ -107,18 +146,53 @@ function App() {
     };
 
     const slug = useMemo(() => getChallengeSlug(pathname), [pathname]);
+    const shouldShowNavbar = pathname !== "/login" && pathname !== "/register" && !slug;
+    const onAuthSuccess = () => {
+        setAuthSession(getStoredAuthSession());
+        navigate("/challenges");
+    };
 
-    if (pathname === "/" || pathname === "/challenges") {
-        return (
+    const onLogout = () => {
+        void (async () => {
+            try {
+                await logoutFromServer();
+            } catch {
+                // Always clear local session state even if server-side logout fails.
+            } finally {
+                clearAuthSession();
+                setAuthSession(null);
+                navigate("/login");
+            }
+        })();
+    };
+
+    let pageContent: ReactElement;
+
+    if (pathname === "/login") {
+        pageContent = (
+            <LoginPage
+                onSuccess={onAuthSuccess}
+                onOpenRegister={() => navigate("/register")}
+                onOpenChallenges={() => navigate("/challenges")}
+            />
+        );
+    } else if (pathname === "/register") {
+        pageContent = (
+            <RegisterPage
+                onSuccess={onAuthSuccess}
+                onOpenLogin={() => navigate("/login")}
+                onOpenChallenges={() => navigate("/challenges")}
+            />
+        );
+    } else if (pathname === "/" || pathname === "/challenges") {
+        pageContent = (
             <ChallengesPage
                 onOpenChallenge={(challengeSlug) =>
                     navigate(`/challenges/${encodeURIComponent(challengeSlug)}`)
                 }
             />
         );
-    }
-
-    if (slug) {
+    } else if (slug) {
         const challengePanel = (
             <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-900/85 shadow-[0_10px_30px_rgba(2,6,23,0.35)]">
                 <div className="flex items-center justify-between border-b border-slate-700/70 bg-gradient-to-r from-slate-900 to-slate-800/90 px-4 py-3">
@@ -143,62 +217,77 @@ function App() {
             </section>
         );
 
-        return (
-            <div className="h-dvh w-screen overflow-hidden bg-[#070d1a] text-slate-100">
-                <div className="h-full w-full p-2">
-                    {isNarrowViewport ? (
-                        <div className="flex h-full min-h-0 flex-col gap-2">
-                            <div className="min-h-0 flex-[1.05]">{challengePanel}</div>
-                            <div className="min-h-0 flex-1">{editorPanel}</div>
+        pageContent = (
+            <div className="h-full w-full overflow-hidden p-2">
+                {isNarrowViewport ? (
+                    <div className="flex h-full min-h-0 flex-col gap-2">
+                        <div className="min-h-0 flex-[1.05]">{challengePanel}</div>
+                        <div className="min-h-0 flex-1">{editorPanel}</div>
+                    </div>
+                ) : (
+                    <div ref={splitContainerRef} className="flex h-full min-h-0 w-full items-stretch gap-2">
+                        <div
+                            className="h-full min-h-0 min-w-0"
+                            style={{ width: `${leftPanelWidthPercent}%` }}
+                        >
+                            {challengePanel}
                         </div>
-                    ) : (
-                        <div ref={splitContainerRef} className="flex h-full min-h-0 w-full items-stretch gap-2">
-                            <div
-                                className="h-full min-h-0 min-w-0"
-                                style={{ width: `${leftPanelWidthPercent}%` }}
-                            >
-                                {challengePanel}
-                            </div>
 
-                            <button
-                                type="button"
-                                aria-label="Resize panels"
-                                aria-orientation="vertical"
-                                onMouseDown={(event) => {
-                                    event.preventDefault();
-                                    setIsResizingPanels(true);
-                                }}
-                                onDoubleClick={() => setLeftPanelWidthPercent(50)}
-                                className={`group relative h-full w-3 shrink-0 cursor-col-resize rounded-full border border-slate-700/60 bg-slate-900/70 transition ${
-                                    isResizingPanels ? "border-sky-500/80 bg-sky-500/20" : "hover:border-slate-500/80"
-                                }`}
-                            >
-                                <span className="absolute left-1/2 top-1/2 h-16 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-500 transition group-hover:bg-slate-300" />
-                            </button>
+                        <button
+                            type="button"
+                            aria-label="Resize panels"
+                            aria-orientation="vertical"
+                            onMouseDown={(event) => {
+                                event.preventDefault();
+                                setIsResizingPanels(true);
+                            }}
+                            onDoubleClick={() => setLeftPanelWidthPercent(50)}
+                            className={`group relative h-full w-3 shrink-0 cursor-col-resize rounded-full border border-slate-700/60 bg-slate-900/70 transition ${
+                                isResizingPanels ? "border-sky-500/80 bg-sky-500/20" : "hover:border-slate-500/80"
+                            }`}
+                        >
+                            <span className="absolute left-1/2 top-1/2 h-16 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-500 transition group-hover:bg-slate-300" />
+                        </button>
 
-                            <div className="h-full min-h-0 min-w-0 flex-1">{editorPanel}</div>
-                        </div>
-                    )}
+                        <div className="h-full min-h-0 min-w-0 flex-1">{editorPanel}</div>
+                    </div>
+                )}
+            </div>
+        );
+    } else {
+        pageContent = (
+            <div className="flex h-full items-center justify-center p-6 text-white">
+                <div className="max-w-md space-y-2 rounded-lg border border-gray-700 bg-gray-800 p-5">
+                    <h1 className="text-xl font-bold">Page not found</h1>
+                    <p className="text-gray-300">
+                        This route does not exist.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => navigate("/challenges")}
+                        className="text-sm text-yellow-400 underline underline-offset-4 hover:text-yellow-300"
+                    >
+                        Go to challenges
+                    </button>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-900 p-6 text-white">
-            <div className="max-w-md space-y-2 rounded-lg border border-gray-700 bg-gray-800 p-5">
-                <h1 className="text-xl font-bold">Page not found</h1>
-                <p className="text-gray-300">
-                    This route does not exist.
-                </p>
-                <button
-                    type="button"
-                    onClick={() => navigate("/challenges")}
-                    className="text-sm text-yellow-400 underline underline-offset-4 hover:text-yellow-300"
-                >
-                    Go to challenges
-                </button>
-            </div>
+        <div className="flex h-dvh min-h-dvh flex-col bg-[#070d1a] text-slate-100">
+            {shouldShowNavbar && (
+                <AppNavbar
+                    pathname={pathname}
+                    isAuthenticated={authSession !== null}
+                    displayName={authSession?.displayName || authSession?.username || null}
+                    onNavigate={navigate}
+                    onLogout={onLogout}
+                />
+            )}
+            <main className={`min-h-0 flex-1 ${slug ? "overflow-hidden" : "overflow-y-auto"}`}>
+                {pageContent}
+            </main>
         </div>
     );
 }

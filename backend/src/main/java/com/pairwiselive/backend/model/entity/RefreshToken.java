@@ -46,12 +46,6 @@ public class RefreshToken {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(name = "user_agent", length = 255)
-    private String userAgent;
-
-    @Column(name = "ip_address", length = 45)
-    private String ipAddress;
-
     @PrePersist
     void onCreate() {
         if (createdAt == null) {

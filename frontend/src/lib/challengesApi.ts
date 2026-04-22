@@ -5,6 +5,7 @@ import type {
     SubmitCodeRequest,
     SubmitCodeResponse,
 } from "../types/sandbox";
+import { fetchWithAuth } from "./authApi";
 
 const API_BASE_URL = (
     (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? ""
@@ -48,7 +49,7 @@ export function fetchChallengeBySlug(slug: string, signal: AbortSignal): Promise
 }
 
 export async function runChallengeTests(payload: SandboxRunTestsRequest): Promise<SandboxRunTestsResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/execution/run`, {
+    const response = await fetchWithAuth("/api/execution/run", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -63,29 +64,11 @@ export async function runChallengeTests(payload: SandboxRunTestsRequest): Promis
     return (await response.json()) as SandboxRunTestsResponse;
 }
 
-function resolveSubmitUserIdHeaderValue(): string {
-    const fromLocalStorage =
-        localStorage.getItem("pairwise.userId")
-        ?? localStorage.getItem("pairwiseUserId")
-        ?? localStorage.getItem("userId");
-    const fromEnv = import.meta.env.VITE_SUBMIT_USER_ID as string | undefined;
-    const userId = (fromLocalStorage ?? fromEnv ?? "").trim();
-
-    if (userId.length === 0) {
-        throw new Error(
-            "Missing submit user id. Set VITE_SUBMIT_USER_ID or localStorage key `pairwise.userId`."
-        );
-    }
-
-    return userId;
-}
-
 export async function submitChallengeCode(payload: SubmitCodeRequest): Promise<SubmitCodeResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/submissions`, {
+    const response = await fetchWithAuth("/api/submissions", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "X-User-Id": resolveSubmitUserIdHeaderValue(),
         },
         body: JSON.stringify(payload),
     });

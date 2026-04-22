@@ -47,7 +47,7 @@ public class SubmissionService {
         Long userId
     ) {
         if (userId == null || userId <= 0) {
-            throw new BadRequestException("X-User-Id header is required and must be a positive number.");
+            throw new BadRequestException("Authenticated user id is required and must be a positive number.");
         }
 
         User user = userRepository.findById(userId)
