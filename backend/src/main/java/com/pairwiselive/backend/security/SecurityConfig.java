@@ -39,6 +39,7 @@ public class SecurityConfig {
                 // Public Routes
                 .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh", "/api/auth/logout")
                 .permitAll()
+                .requestMatchers("/ws/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/challenges/**").permitAll()
                 // Protected Routes
                 .anyRequest().authenticated()
