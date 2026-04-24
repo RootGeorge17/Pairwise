@@ -25,12 +25,13 @@ type NavLink = {
     to: string | null;
     icon: LucideIcon;
     soon?: boolean;
+    requiresAuth?: boolean;
 };
 
 const NAV_LINKS: NavLink[] = [
     { label: "Challenges", to: "/challenges", icon: LayoutGrid },
-    { label: "Submissions", to: null, icon: ListChecks, soon: true },
-    { label: "Lobbies", to: null, icon: Users, soon: true },
+    { label: "Submissions", to: null, icon: ListChecks, soon: true, requiresAuth: true },
+    { label: "Lobbies", to: "/lobbies", icon: Users, requiresAuth: true },
 ];
 
 function isActiveRoute(pathname: string, to: string | null): boolean {
@@ -59,6 +60,10 @@ function getInitials(name: string): string {
 
 function AppNavbar({ pathname, isAuthenticated, displayName, onNavigate, onLogout }: AppNavbarProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const visibleNavLinks = useMemo(
+        () => NAV_LINKS.filter((link) => !link.requiresAuth || isAuthenticated),
+        [isAuthenticated],
+    );
 
     const safeDisplayName = displayName?.trim() || "Pairwise User";
     const compactDisplayName = useMemo(() => {
@@ -92,7 +97,7 @@ function AppNavbar({ pathname, isAuthenticated, displayName, onNavigate, onLogou
                     </button>
 
                     <nav className="hidden items-center gap-1 md:flex">
-                        {NAV_LINKS.map((link) => {
+                        {visibleNavLinks.map((link) => {
                             const active = isActiveRoute(pathname, link.to);
                             const disabled = !link.to;
                             const Icon = link.icon;
@@ -175,7 +180,7 @@ function AppNavbar({ pathname, isAuthenticated, displayName, onNavigate, onLogou
             {isMobileMenuOpen && (
                 <div className="absolute inset-x-0 top-full border-b border-slate-800 bg-slate-950 p-4 md:hidden">
                     <div className="space-y-1">
-                        {NAV_LINKS.map((link) => {
+                        {visibleNavLinks.map((link) => {
                             const Icon = link.icon;
                             const active = isActiveRoute(pathname, link.to);
                             const disabled = !link.to;

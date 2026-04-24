@@ -34,3 +34,65 @@ export type ChallengeDetails = {
     languages: ChallengeLanguage[];
     examples: ChallengeExample[];
 };
+
+export type LobbyChallenge = {
+    id: number;
+    slug: string;
+    title: string;
+    difficulty: string;
+};
+
+export type LobbyLanguage = {
+    id: number;
+    language: string;
+    starterCode: string;
+    entryFilename: string;
+    timeLimitMs: number;
+    memoryLimitMb: number;
+    isDefault: boolean;
+};
+
+export type LobbyParticipant = {
+    userId: number;
+    username: string;
+    displayName: string;
+    pairRole: string;
+    joinedAt: string;
+};
+
+export type LobbyResponse = {
+    id: number;
+    joinCode: string;
+    name: string | null;
+    status: string;
+    hostUserId: number;
+    currentDriverUserId: number | null;
+    maxParticipants: number;
+    roleRotationEnabled: boolean;
+    rotationIntervalSecs: number | null;
+    lastRoleSwitchAt: string | null;
+    createdAt: string;
+    startedAt: string | null;
+    endedAt: string | null;
+    challenge: LobbyChallenge;
+    language: LobbyLanguage;
+    participants: LobbyParticipant[];
+    currentUserRole: string | null;
+};
+
+export type CreateLobbyRequest = {
+    challengeId: number;
+    challengeLanguageId: number;
+    name?: string;
+    roleRotationEnabled?: boolean;
+    rotationIntervalSecs?: number;
+};
+
+export type JoinLobbyRequest = {
+    joinCode: string;
+};
+
+export type UpdateLobbySettingsRequest = {
+    roleRotationEnabled?: boolean;
+    rotationIntervalSecs?: number;
+};

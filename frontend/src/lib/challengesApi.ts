@@ -1,4 +1,11 @@
-import type { ChallengeDetails, ChallengeSummary } from "../types/challenge";
+import type {
+    ChallengeDetails,
+    ChallengeSummary,
+    CreateLobbyRequest,
+    JoinLobbyRequest,
+    LobbyResponse,
+    UpdateLobbySettingsRequest,
+} from "../types/challenge";
 import type {
     SandboxRunTestsRequest,
     SandboxRunTestsResponse,
@@ -78,4 +85,155 @@ export async function submitChallengeCode(payload: SubmitCodeRequest): Promise<S
     }
 
     return (await response.json()) as SubmitCodeResponse;
+}
+
+export async function createLobby(payload: CreateLobbyRequest): Promise<LobbyResponse> {
+    const response = await fetchWithAuth("/api/lobbies", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response));
+    }
+
+    return (await response.json()) as LobbyResponse;
+}
+
+export async function joinLobby(payload: JoinLobbyRequest): Promise<LobbyResponse> {
+    const response = await fetchWithAuth("/api/lobbies/join", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response));
+    }
+
+    return (await response.json()) as LobbyResponse;
+}
+
+export async function fetchLobbies(): Promise<LobbyResponse[]> {
+    const response = await fetchWithAuth("/api/lobbies");
+    if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response));
+    }
+
+    return (await response.json()) as LobbyResponse[];
+}
+
+export async function fetchLobbyById(lobbyId: number): Promise<LobbyResponse> {
+    const response = await fetchWithAuth(`/api/lobbies/${lobbyId}`);
+    if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response));
+    }
+
+    return (await response.json()) as LobbyResponse;
+}
+
+export async function startLobby(lobbyId: number): Promise<LobbyResponse> {
+    const response = await fetchWithAuth(`/api/lobbies/${lobbyId}/start`, {
+        method: "POST",
+    });
+
+    if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response));
+    }
+
+    return (await response.json()) as LobbyResponse;
+}
+
+export async function stopLobby(lobbyId: number): Promise<LobbyResponse> {
+    const response = await fetchWithAuth(`/api/lobbies/${lobbyId}/stop`, {
+        method: "POST",
+    });
+
+    if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response));
+    }
+
+    return (await response.json()) as LobbyResponse;
+}
+
+export async function rotateLobbyRoles(lobbyId: number): Promise<LobbyResponse> {
+    const response = await fetchWithAuth(`/api/lobbies/${lobbyId}/rotate`, {
+        method: "POST",
+    });
+
+    if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response));
+    }
+
+    return (await response.json()) as LobbyResponse;
+}
+
+export async function leaveLobby(lobbyId: number): Promise<void> {
+    const response = await fetchWithAuth(`/api/lobbies/${lobbyId}/leave`, {
+        method: "POST",
+    });
+
+    if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response));
+    }
+}
+
+export async function updateLobbySettings(
+    lobbyId: number,
+    payload: UpdateLobbySettingsRequest,
+): Promise<LobbyResponse> {
+    const response = await fetchWithAuth(`/api/lobbies/${lobbyId}/settings`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response));
+    }
+
+    return (await response.json()) as LobbyResponse;
+}
+
+export async function updateLobbyParticipantRole(
+    lobbyId: number,
+    userId: number,
+    pairRole: string,
+): Promise<LobbyResponse> {
+    const response = await fetchWithAuth(`/api/lobbies/${lobbyId}/participants/${userId}/role`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ pairRole }),
+    });
+
+    if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response));
+    }
+
+    return (await response.json()) as LobbyResponse;
+}
+
+export async function transferLobbyHost(lobbyId: number, hostUserId: number): Promise<LobbyResponse> {
+    const response = await fetchWithAuth(`/api/lobbies/${lobbyId}/host`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ hostUserId }),
+    });
+
+    if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response));
+    }
+
+    return (await response.json()) as LobbyResponse;
 }
