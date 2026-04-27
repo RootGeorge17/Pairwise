@@ -473,7 +473,7 @@ function LobbiesPage({ onOpenLobby }: LobbiesPageProps) {
                                             value={lobbyName}
                                             onChange={(event) => setLobbyName(event.target.value)}
                                             maxLength={80}
-                                            placeholder="Morning prep session"
+                                            placeholder=""
                                             className="w-full rounded-lg border border-slate-600 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
                                         />
                                     </label>
@@ -551,7 +551,7 @@ function LobbiesPage({ onOpenLobby }: LobbiesPageProps) {
                                             value={joinCode}
                                             onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
                                             maxLength={8}
-                                            placeholder="AB12CD"
+                                            placeholder=""
                                             className="w-full rounded-lg border border-slate-600 bg-slate-950/80 px-3 py-2 text-sm tracking-[0.18em] text-slate-100 uppercase placeholder:tracking-normal placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
                                         />
                                     </label>

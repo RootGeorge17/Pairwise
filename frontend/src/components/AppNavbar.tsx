@@ -24,13 +24,11 @@ type NavLink = {
     label: string;
     to: string | null;
     icon: LucideIcon;
-    soon?: boolean;
     requiresAuth?: boolean;
 };
 
 const NAV_LINKS: NavLink[] = [
     { label: "Challenges", to: "/challenges", icon: LayoutGrid },
-    { label: "Submissions", to: null, icon: ListChecks, soon: true, requiresAuth: true },
     { label: "Lobbies", to: "/lobbies", icon: Users, requiresAuth: true },
 ];
 
@@ -116,11 +114,6 @@ function AppNavbar({ pathname, isAuthenticated, displayName, onNavigate, onLogou
                                 >
                                     <Icon className={`h-4 w-4 ${active ? "text-sky-300" : "text-slate-400 group-hover:text-slate-200"}`} />
                                     {link.label}
-                                    {link.soon && (
-                                        <span className="rounded-md border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                                            Soon
-                                        </span>
-                                    )}
                                 </button>
                             );
                         })}
@@ -201,11 +194,6 @@ function AppNavbar({ pathname, isAuthenticated, displayName, onNavigate, onLogou
                                         <Icon className="h-4 w-4" />
                                         {link.label}
                                     </span>
-                                    {link.soon && (
-                                        <span className="rounded-md border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                                            Soon
-                                        </span>
-                                    )}
                                 </button>
                             );
                         })}

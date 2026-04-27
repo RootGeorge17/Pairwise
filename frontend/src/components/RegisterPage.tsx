@@ -182,7 +182,7 @@ function RegisterPage({ onSuccess, onOpenLogin, onOpenChallenges }: RegisterPage
                                             setFieldErrors((previous) => ({ ...previous, displayName: undefined }));
                                         }}
                                         className="w-full rounded-xl border border-slate-600/80 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
-                                        placeholder="Ada Lovelace"
+                                        placeholder="Your name"
                                         disabled={isSubmitting}
                                     />
                                     {fieldErrors.displayName && <p className="text-xs text-rose-300">{fieldErrors.displayName}</p>}
